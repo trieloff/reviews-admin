@@ -31,6 +31,9 @@ async function notifyGitHub({ op, owner, repo, reviewId, status, pages }) {
 
   // see https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
   const url = `https://api.github.com/repos/${pingowner}/${pingrepo}/dispatches`;
+
+  console.log('ready to notify github with', url, payload);
+
   const ghreq = new Request(url, {
     method: 'POST',
     headers: {
@@ -40,7 +43,13 @@ async function notifyGitHub({ op, owner, repo, reviewId, status, pages }) {
     },
     body: JSON.stringify(payload),
   });
-  await fetch(ghreq);
+  try {
+    const res = await fetch(ghreq);
+    console.log('github notified', res.status, await res.text);
+  } catch (e) {
+    console.log('error notifying github', e);
+  }
+
 }
 
 async function approveReview(review, env, allReviews) {
