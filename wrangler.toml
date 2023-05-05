@@ -1,4 +1,5 @@
 # Top-level configuration
+account_id = "f9a5d29335f63217bde8c50779556f00"
 name = "reviews-admin"
 main = "src/index.js"
 compatibility_date = "2023-05-05"
