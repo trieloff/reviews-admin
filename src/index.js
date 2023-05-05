@@ -22,15 +22,12 @@ async function notifyGitHub({ op, owner, repo, reviewId, status, pages }) {
     },
   };
 
-  const pingowner = 'trieloff' || owner; // switch this to dynamic value when the PR has been merged
-  const pingrepo = 'thinktanked' || repo;
-
   // get GH Token from Cloudflare secrets
   const githubToken = await GITHUB_TOKEN;
   // TODO: we may need to go through the bot secrets when this becomes prod ready
 
   // see https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
-  const url = `https://api.github.com/repos/${pingowner}/${pingrepo}/dispatches`;
+  const url = `https://api.github.com/repos/${owner}/${repo}/dispatches`;
 
   console.log('ready to notify github with', url, payload, githubToken.length);
 
@@ -63,6 +60,7 @@ async function approveReview(review, env, allReviews) {
     review.status = 'open';
   }
   else allReviews.splice(found, 1);
+  // TODO: use R2 instead of KV
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
   await notifyGitHub({
     op: 'review-approved',
