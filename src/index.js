@@ -38,6 +38,7 @@ async function notifyGitHub({ op, owner, repo, reviewId, status, pages }) {
     method: 'POST',
     headers: {
       Accept: 'application/vnd.github.everest-preview+json',
+      'User-Agent': 'hlx-reviews on Cloudflare Workers',
       'Content-Type': 'application/json',
       Authorization: `Bearer ${githubToken}`,
     },
