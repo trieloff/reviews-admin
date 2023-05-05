@@ -81,6 +81,14 @@ async function rejectReview(review, env, allReviews) {
   }
   review.status = 'open';
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await notifyGitHub({
+    op: 'review-rejected',
+    reviewId: review.reviewId,
+    repo: env.repo,
+    owner: env.owner,
+    status: review.status,
+    pages: review.pages,
+  });
   return simpleResponse(200, 'Review Rejected');
 }
 
@@ -90,6 +98,14 @@ async function submitReview(review, env, allReviews) {
   }
   review.status = 'submitted';
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await notifyGitHub({
+    op: 'review-submitted',
+    reviewId: review.reviewId,
+    repo: env.repo,
+    owner: env.owner,
+    status: review.status,
+    pages: review.pages,
+  });
   return simpleResponse(200, 'Review Submitted');
 }
 
@@ -111,6 +127,14 @@ async function updateReview(review, description, pages, env, allReviews) {
     review.pages = pages;
   }
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await notifyGitHub({
+    op: 'review-updated',
+    reviewId: review.reviewId,
+    repo: env.repo,
+    owner: env.owner,
+    status: review.status,
+    pages: review.pages,
+  });
   return simpleResponse(200, 'Review Created / Updated');
 }
 
@@ -128,6 +152,14 @@ async function addPageToReview(review, page, env, allReviews) {
   pages.push(page);
   review.pages = pages.join(',');
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await notifyGitHub({
+    op: 'review-updated',
+    reviewId: review.reviewId,
+    repo: env.repo,
+    owner: env.owner,
+    status: review.status,
+    pages: review.pages,
+  });
   return simpleResponse(200, 'Review Updated');
 }
 
@@ -146,6 +178,14 @@ async function removePageFromReview(review, page, env, allReviews) {
   pages.splice(found, 1);
   review.pages = pages.join(',');
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await notifyGitHub({
+    op: 'review-updated',
+    reviewId: review.reviewId,
+    repo: env.repo,
+    owner: env.owner,
+    status: review.status,
+    pages: review.pages,
+  });
   return simpleResponse(200, 'Review Updated');
 }
 
