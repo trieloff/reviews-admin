@@ -11,6 +11,10 @@ kv_namespaces = [
   { binding = "reviews", id = "961dfdc099174f31b268a284389b7897" }
 ]
 
+[vars]
+# Requires following secrets:
+# - GITHUB_TOKEN (GitHub personal access token with repo scope to trigger repository dispatch events)
+
 # [env.staging]
 # name = "my-worker-staging"
 # route = { pattern = "staging.example.org/*", zone_name = "example.org" }

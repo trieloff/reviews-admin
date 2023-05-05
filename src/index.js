@@ -12,6 +12,37 @@ function simpleResponse(status, text) {
   });
 }
 
+async function notifyGitHub({ op, owner, repo, reviewId, status, pages }) {
+  const payload = {
+    event_type: op,
+    client_payload: {
+      reviewId,
+      status,
+      pages,
+    },
+  };
+
+  const pingowner = 'trieloff' || owner; // switch this to dynamic value when the PR has been merged
+  const pingrepo = 'thinktanked' || repo;
+
+  // get GH Token from Cloudflare secrets
+  const githubToken = await GITHUB_TOKEN;
+  // TODO: we may need to go through the bot secrets when this becomes prod ready
+
+  // see https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event
+  const url = `https://api.github.com/repos/${pingowner}/${pingrepo}/dispatches`;
+  const ghreq = new Request(url, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/vnd.github.everest-preview+json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${githubToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  await fetch(ghreq);
+}
+
 async function approveReview(review, env, allReviews) {
   if (!review) {
     return simpleResponse(404, 'Review not found');
@@ -23,6 +54,14 @@ async function approveReview(review, env, allReviews) {
   }
   else allReviews.splice(found, 1);
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await notifyGitHub({
+    op: 'review-approved',
+    reviewId: review.reviewId,
+    repo: env.repo,
+    owner: env.owner,
+    status: review.status,
+    pages: review.pages,
+  });
   return simpleResponse(200, 'Review Approved');
 }
 
