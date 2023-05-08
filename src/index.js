@@ -169,7 +169,8 @@ async function removePageFromReview(review, page, env, allReviews) {
     return simpleResponse(403, 'Forbidden. Review is already submitted');
   }
   const pages = review.pages ? review.pages.split(',').map((e) => e.trim()) : [];
-  const found = pages.indexOf(page);
+  const pathname = page.split('?')[0];
+  const found = pages.findIndex((p) => pathname === p.split('?')[0]);
   if (found < 0) {
     return simpleResponse(404, 'Page not found');
   }
