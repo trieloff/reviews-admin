@@ -121,7 +121,7 @@ async function updateReview(review, description, pages, env, allReviews) {
     return simpleResponse(403, 'Forbidden. Review is already submitted');
   }
 
-  if (pages) {
+  if (pages !== null) {
     review.pages = pages;
   }
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
