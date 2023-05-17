@@ -55,7 +55,7 @@ async function approveReview(review, env, allReviews) {
     return simpleResponse(404, 'Review not found');
   }
   const found = allReviews.findIndex((r) => r.reviewId === review.reviewId);
-  if (found < 0) {
+  if (found >= 0) {
     await notifyGitHub({
       op: 'review-approved',
       reviewId: review.reviewId,
