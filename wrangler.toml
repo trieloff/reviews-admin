@@ -11,6 +11,10 @@ kv_namespaces = [
   { binding = "reviews", id = "961dfdc099174f31b268a284389b7897" }
 ]
 
+r2_buckets = [
+  { binding = "REVIEWS_BUCKET", bucket_name = "reviews-bucket", preview_bucket_name = "" }
+]
+
 [vars]
 # Requires following secrets:
 # - GITHUB_TOKEN (GitHub personal access token with repo scope to trigger repository dispatch events)
