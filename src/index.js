@@ -55,6 +55,16 @@ async function approveReview(review, env, allReviews) {
     return simpleResponse(404, 'Review not found');
   }
   const found = allReviews.findIndex((r) => r.reviewId === review.reviewId);
+  if (found >= 0) {
+    await notifyGitHub({
+      op: 'review-approved',
+      reviewId: review.reviewId,
+      repo: env.repo,
+      owner: env.owner,
+      status: review.status,
+      pages: review.pages,
+    });
+  }
   if (review.reviewId === 'default') {
     review.pages = '';
     review.status = 'open';
@@ -62,14 +72,6 @@ async function approveReview(review, env, allReviews) {
   else allReviews.splice(found, 1);
   // TODO: use R2 instead of KV
   await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
-  await notifyGitHub({
-    op: 'review-approved',
-    reviewId: review.reviewId,
-    repo: env.repo,
-    owner: env.owner,
-    status: review.status,
-    pages: review.pages,
-  });
   return simpleResponse(200, 'Review Approved');
 }
 
