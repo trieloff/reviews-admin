@@ -71,7 +71,15 @@ async function approveReview(review, env, allReviews) {
   }
   else allReviews.splice(found, 1);
   // TODO: use R2 instead of KV
-  await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await REVIEWS_BUCKET.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await notifyGitHub({
+    op: 'review-approved',
+    reviewId: review.reviewId,
+    repo: env.repo,
+    owner: env.owner,
+    status: review.status,
+    pages: review.pages,
+  });
   return simpleResponse(200, 'Review Approved');
 }
 
@@ -80,7 +88,7 @@ async function rejectReview(review, env, allReviews) {
     return simpleResponse(404, 'Review not found');
   }
   review.status = 'open';
-  await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await REVIEWS_BUCKET.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
   await notifyGitHub({
     op: 'review-rejected',
     reviewId: review.reviewId,
@@ -97,7 +105,7 @@ async function submitReview(review, env, allReviews) {
     return simpleResponse(404, 'Review not found');
   }
   review.status = 'submitted';
-  await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await REVIEWS_BUCKET.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
   await notifyGitHub({
     op: 'review-submitted',
     reviewId: review.reviewId,
@@ -126,7 +134,7 @@ async function updateReview(review, description, pages, env, allReviews) {
   if (pages !== null) {
     review.pages = pages;
   }
-  await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await REVIEWS_BUCKET.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
   await notifyGitHub({
     op: 'review-updated',
     reviewId: review.reviewId,
@@ -139,6 +147,14 @@ async function updateReview(review, description, pages, env, allReviews) {
 }
 
 async function addPageToReview(review, page, env, allReviews) {
+
+  if (!review && env.reviewId === 'default') {
+    review = {};
+    review.reviewId = env.reviewId;
+    review.status = 'open';
+    allReviews.push(review);
+  }
+
   if (!review) {
     return simpleResponse(404, 'Review not found');
   }
@@ -149,9 +165,9 @@ async function addPageToReview(review, page, env, allReviews) {
     return simpleResponse(404, 'Page not found');
   }
   const pages = review.pages ? review.pages.split(',').map((e) => e.trim()) : [];
-  pages.push(page);
+  if (!pages.includes(page)) pages.push(page);
   review.pages = pages.join(',');
-  await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await REVIEWS_BUCKET.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
   await notifyGitHub({
     op: 'review-updated',
     reviewId: review.reviewId,
@@ -178,7 +194,7 @@ async function removePageFromReview(review, page, env, allReviews) {
   }
   pages.splice(found, 1);
   review.pages = pages.join(',');
-  await reviews.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
+  await REVIEWS_BUCKET.put(`${env.repo}--${env.owner}`, JSON.stringify(allReviews));
   await notifyGitHub({
     op: 'review-updated',
     reviewId: review.reviewId,
@@ -191,6 +207,25 @@ async function removePageFromReview(review, page, env, allReviews) {
 }
 
 async function handleRequest(request) {
+
+  const streamToString = async (stream) => {
+    const concat = (buffer, chunk) => {
+      const newBuffer = new (buffer.constructor)(buffer.length + chunk.length);
+      newBuffer.set(buffer, 0);
+      newBuffer.set(chunk, buffer.length);
+      return newBuffer;
+    }
+    const reader = stream.getReader();
+    let done = false;
+    let buffer = new Uint8Array(0);
+    do {
+      const chunk = await reader.read();
+      done = chunk.done;
+      if (chunk.value) buffer = concat(buffer, chunk.value);
+    } while (!done);
+    return new TextDecoder().decode(buffer);
+  };
+
   const url = new URL(request.url);
   let hostname = url.hostname;
 
@@ -206,10 +241,15 @@ async function handleRequest(request) {
   const [reviewId, ref, repo, owner] = splits;
   const env = { reviewId, ref, repo, owner };
 
-  const value = await reviews.get(`${repo}--${owner}`);
+  const object = await REVIEWS_BUCKET.get(`${repo}--${owner}`);
+  const value = object ? await streamToString(object.body) : '';
 
   if (request.method === 'GET') {
-    const response = { data: [] };
+    const response = { data: [{
+      reviewId: "default",
+      status: "open",
+      pages: "",
+    }] };
     if (value) {
       response.data = JSON.parse(value);
     }
