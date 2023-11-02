@@ -241,6 +241,19 @@ async function handleRequest(request) {
   const [reviewId, ref, repo, owner] = splits;
   const env = { reviewId, ref, repo, owner };
 
+  /* auth against .page */
+  const authUrl = new URL(`https://${ref}--${repo}--${owner}.hlx.page/`);
+  const options = { 
+    headers: {
+    'authorization': request.headers.get('authorization'),
+    'x-forwarded-host': request.headers.get('host'),
+    }, 
+    redirect: 'manual'
+  };
+  const data = await fetch(authUrl.toString(), options);
+  if (data.status === 302 || data.status === 401 || data.status === 403)
+    return(simpleResponse(401, `401 Unauthorized`));
+
   const object = await REVIEWS_BUCKET.get(`${repo}--${owner}`);
   const value = object ? await streamToString(object.body) : '';
 
